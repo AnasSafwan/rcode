@@ -1,0 +1,61 @@
+---
+title: "Lab 3 CSM22011"
+output: PDF
+---
+```{r}
+# Read in the data
+df <- read.csv('gage_rr_data.csv')
+
+# Reshape the data to long format
+df_long <- df %>%
+  pivot_longer(
+    cols = -Part_Number, 
+    names_to = "combination", 
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Operator = as.factor(sub(".*_(Operator\\d).*", "\\1", combination)),
+    Measurement = as.factor(sub(".*_(Measurement\\d)", "\\1", combination)),
+    Part_Number = as.factor(Part_Number)
+  )
+
+# Ensure that Part_Number is a factor
+df_wide$Part_Number <- as.factor(df_wide$Part_Number)
+
+# Check the structure of the reshaped data
+print(head(df_long))
+```
+```{r}
+# Now run the Gage R&R analysis with the wide-format data frame
+# We need to create a vector with the names of the measurement columns
+measurement_columns <- names(df_wide)[grepl("Operator\\d_Measurement\\d", names(df_wide))]
+```
+
+```{r}
+# Ensure that the operator names are factor levels in the measurement columns
+#df_wide[, measurement_columns] <- lapply(df_wide[, measurement_columns], factor)
+```
+
+```{r}
+# Now run the Gage R&R analysis with the wide-format data frame
+ss_rr_result <- SixSigma::ss.rr(
+  var = measurement_columns,  # Pass the vector of measurement column names
+  part = "Part_Number",
+  appr = c("Operator1", "Operator2"), # This should be the names of your operators
+  data = df_wide,
+  alphaLim = 0.05,
+  errorTerm = "Interaction",
+  lsl = NULL, # Lower specification limit if applicable
+  usl = NULL, # Upper specification limit if applicable
+  method = "crossed"
+)
+```
+
+```{r}
+# View the results
+print(ss_rr_result)
+
+# Plot the results
+plot(ss_rr_result)
+```
+
